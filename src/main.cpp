@@ -3,8 +3,12 @@
 #include <USART.h>
 #include <LCD.h>
 #include <INT0.h>
+#include <Segment.h>
+#include <ShiftReg.h>
+#include <Peripherals.h>
 
-char text[MAX_TEXT];
+char text[MAX_TEXT]; // for USART input
+byte digits[ARRAY_SIZE_DECIMAL] = {0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 0xBE, 0xE0, 0xFE, 0xF6 }; // for 7-segment digits
 
 int main() {
 
@@ -16,6 +20,7 @@ int main() {
   USART_init();
   LCD_init();
   INT0_init();
+  peripherals_init();
 
   // clear LCD display
 	LCD_command(1);
