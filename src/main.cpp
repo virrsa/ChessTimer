@@ -33,6 +33,7 @@ int main() {
   }
 }
 
+// Button input interrupt to swap player turns and timer countdowns
 ISR(INT0_vect) {
 
 }
