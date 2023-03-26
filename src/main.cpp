@@ -8,7 +8,9 @@
 #include <Peripherals.h>
 
 char text[MAX_TEXT]; // for USART input
-byte digits[ARRAY_SIZE_DECIMAL] = {0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 0xBE, 0xE0, 0xFE, 0xF6 }; // for 7-segment digits
+// Output values to display numbers on 7-seg
+byte digits[ARRAY_SIZE_DECIMAL] = {0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 0xBE, 0xE0, 0xFE, 0xF6, // 0 - 9
+                                   0xEE, 0x3E, 0x9C, 0x7A, 0x9E, 0x8E}; // A - F
 
 int main() {
 
@@ -16,11 +18,12 @@ int main() {
     dbg_start();
   #endif
 
-  // initialize USART/LCD/INT0 controller
+  // initialize USART/LCD/INT0/shift register controller
   USART_init();
   LCD_init();
   INT0_init();
   peripherals_init();
+  init_shift(DATA,CLOCK,LATCH);
 
   // clear LCD display
 	LCD_command(1);
@@ -28,8 +31,24 @@ int main() {
   // reset variables
 	memset(text, 0, MAX_TEXT);
 
-  while(1) {
+  LCD_string("Test");
 
+  while(1) {
+    /* 
+    //For testing the different components
+
+    change_led(true);
+    _delay_ms(500);
+    change_led(false);
+    _delay_ms(500);
+    for(int i = 0; i < 16; i++) {
+      displayValue(digits[i]);
+      _delay_ms(500);
+    }
+    toggle_buzzer(true);
+    _delay_ms(100);
+    toggle_buzzer(false);
+    */
   }
 }
 

@@ -7,3 +7,5 @@
 
 // Function Prototypes
 void peripherals_init(void); // Set up the ports for the LEDs and buzzer
+void change_led(bool player); // Turns the LEDs on/off depending on which player is playing
+void toggle_buzzer(bool buzz); // Turn the buzzer on or off, based on the bool value provided (true = on)
