@@ -13,7 +13,6 @@ byte digits[ARRAY_SIZE_DECIMAL] = {0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 0xBE, 0xE
                                    0xEE, 0x3E, 0x9C, 0x7A, 0x9E, 0x8E}; // A - F
 volatile bool change = false; // Keep track of whether there was a change, to perform actions in the while loop as needed
 volatile bool currPlayer = false; // True if P1's turn, false if P2's - Initial button press flips from P2 to start with P1
-bool gameStarted = false; // Only perform button interrupt actions if the game has started
 
 int selectMode(); // Takes USART input to allow the user to configure the timer
 void promptMode(); // Prints out the mode options to serial to prompt the user to select one
@@ -30,7 +29,6 @@ int main() {
   // initialize USART/LCD/INT0/shift register controller
   USART_init();
   LCD_init();
-  INT0_init();
   peripherals_init();
   init_shift(DATA,CLOCK,LATCH);
 
@@ -54,7 +52,7 @@ int main() {
   USART_send_string(text);
   memset(text, 0, MAX_TEXT);
 
-  gameStarted = true; // Mode and time have been specified, button INT0 interrupt can start working
+  INT0_init(); // Mode and time have been specified, button INT0 interrupt can start working
 
   while(1) {
     /* 
@@ -96,7 +94,7 @@ int selectMode() {
 
   while(strlen(modeStr) > 1 || modeInt != 1 && modeInt != 2) { // Make sure the selected mode is valid
     USART_send_string("\n=====================================================\n");
-    USART_send_string("Invalid unput! Please enter either '1' or '2'.\n");
+    USART_send_string("Invalid input! Please enter either '1' or '2'.\n");
     promptMode(); // Print the available mode information out to the user
     memset(modeStr, 0, MAX_TEXT); // Make sure array is clean before taking input
     USART_get_string(modeStr); // Read the user input from serial
@@ -181,11 +179,9 @@ long getTurnTime() {
 
 // Button input interrupt to swap player turns and timer countdowns
 ISR(INT0_vect) {
-  if(gameStarted) { // Prevent interrupts from doing anything until a mode and time have been specified
-    change = true; // Something changed, so let the main game loop know
-    if(currPlayer) // If player 1 ended their turn, it's now player 2's turn
-      currPlayer = false;
-    else // If player 2 ended their turn, it's now player 1's turn
-      currPlayer = true;
-  }
+  change = true; // Something changed, so let the main game loop know
+  if(currPlayer) // If player 1 ended their turn, it's now player 2's turn
+    currPlayer = false;
+  else // If player 2 ended their turn, it's now player 1's turn
+    currPlayer = true;
 }
