@@ -13,8 +13,10 @@ byte digits[ARRAY_SIZE_DECIMAL] = {0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 0xBE, 0xE
                                    0xEE, 0x3E, 0x9C, 0x7A, 0x9E, 0x8E}; // A - F
 volatile bool change = false; // Keep track of whether there was a change, to perform actions in the while loop as needed
 volatile bool currPlayer = false; // True if P1's turn, false if P2's - Initial button press flips from P2 to start with P1
+bool gameStarted = false; // Only perform button interrupt actions if the game has started
 
 int selectMode(); // Takes USART input to allow the user to configure the timer
+void promptMode(); // Prints out the mode options to serial to prompt the user to select one
 
 int main() {
 
@@ -62,10 +64,34 @@ int main() {
 }
 
 int selectMode() {
+  
+  char modeStr[MAX_TEXT]; // To store the mode the user selected
+  
   // Print out a message to the LCD telling the user to select a mode
   LCD_string("Select the mode:");
   LCD_command(0xC0); // Move cursor to 2nd line for 2nd half of message
   LCD_string("(Serial console)");
+
+  promptMode(); // Print the available mode information out to the user
+  USART_get_string(modeStr); // Read the user input from serial
+  int modeInt = atoi(modeStr); // Convert the input to an integer
+
+  while(modeInt != 1 && modeInt != 2) { // Make sure the selected mode is valid
+    USART_send_string("\nInvalid unput! Please enter either '1' or '2'.\n");
+    promptMode(); // Print the available mode information out to the user
+    memset(modeStr, 0, MAX_TEXT); // Make sure array is clean before taking input
+    USART_get_string(modeStr); // Read the user input from serial
+    modeInt = atoi(modeStr); // Convert the input to an integer
+  }
+
+  sei(); // Only take button input once the mode has been selected, so that the game can start
+}
+
+void promptMode() { // Used to print out the mode options, function was made to reduce a few lines used
+  USART_send_string("Please select a mode:\n");
+  USART_send_string(" - Mode 1: Limited overall time, unlimited turn time\n");
+  USART_send_string(" - Mode 2: Unlimited overall time, limited turn time\n");
+  USART_send_string("Enter the number for the desired mode: ");
 }
 
 // Button input interrupt to swap player turns and timer countdowns
