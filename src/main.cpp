@@ -31,6 +31,7 @@ int main() {
   LCD_init();
   peripherals_init();
   init_shift(DATA,CLOCK,LATCH);
+  TCCR1B = (1 << CS12); // set prescalar for timer1 (256)
 
 	LCD_command(1); // Make sure the LCD is clear to start off
 
@@ -54,26 +55,46 @@ int main() {
 
   INT0_init(); // Mode and time have been specified, button INT0 interrupt can start working
 
-  while(1) {
-    /* 
-    //For testing the different components without interrupts
+  change_led(currPlayer); // Turn on inital LED
+  TIFR1 |= (1 << OCF1A); // Reset timer1 overflow flag
 
-    change_led(true);
-    _delay_ms(500);
-    change_led(false);
-    _delay_ms(500);
-    for(int i = 0; i < 16; i++) {
-      displayValue(digits[i]);
-      _delay_ms(500);
-    }
-    toggle_buzzer(true);
-    _delay_ms(100);
-    toggle_buzzer(false);
-    */
+  // Loop for playing mode 1
+  if (mode == 1) {
+    // TODO: mode 1 code
+  }
+  // Loop for playing mode 2
+  else if (mode == 2) {
+    while(1) {
+      // Count down the time left for the player
+      for (int i = seconds-1; i >= 0; i--) {
+        if (change == true) { // If button press is detected, break out of the loop
+          break;
+        }
+        displayValue(digits[i]); // Display time left on 7-segment display
+        TCNT1 = 3035; // Initialize timer value for 1000ms
+        while((TIFR1 & (1 << OCF1A)) == 0); // Check if overflow flag is set
+        TIFR1 |= (1 << OCF1A) ; // Reset timer1 overflow flag
+      }
 
-    if(change) { // If something is different for this loop, perform actions as needed
-      change = false; // Reset the flag because the change is being addresses
-      change_led(currPlayer); // Make sure the LED is lit up for the correct player
+      if(change) { // If something is different for this loop, perform actions as needed
+        change = false; // Reset the flag because the change is being addresses
+        change_led(currPlayer); // Make sure the LED is lit up for the correct player
+      }
+      else { // Trigger buzzer only when player runs out of time
+        toggle_buzzer(true); // Turn on buzzer
+        TCNT1 = 3035; // Initialize timer1 value for buzzer to buzz for one second
+        while((TIFR1 & (1 << OCF1A)) == 0); // Check if overflow flag is set
+        TIFR1 |= (1 << OCF1A); // Reset timer1 overflow flag
+        toggle_buzzer(false); // Turn off buzzer
+
+        if (currPlayer) { // If player 1 ended their turn, it's now player 2's turn
+          currPlayer = false;
+        }
+        else { // If player 2 ended their turn, it's now player 1's turn
+          currPlayer = true;
+        }
+        change_led(currPlayer); // Make sure the LED is lit up for the correct player
+      }
     }
   }
 }
@@ -185,3 +206,19 @@ ISR(INT0_vect) {
   else // If player 2 ended their turn, it's now player 1's turn
     currPlayer = true;
 }
+
+/* 
+  //For testing the different components without interrupts
+
+  change_led(true);
+  _delay_ms(500);
+  change_led(false);
+  _delay_ms(500);
+  for(int i = 0; i < 16; i++) {
+    displayValue(digits[i]);
+    _delay_ms(500);
+  }
+  toggle_buzzer(true);
+  _delay_ms(100);
+  toggle_buzzer(false);
+*/
