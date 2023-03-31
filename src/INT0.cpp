@@ -6,5 +6,5 @@ void INT0_init(void) {
 
   EICRA|= (1 << ISC01); // set INT0 for falling edge mode
   EIMSK|=(1 << INT0); // enable INT0
-  // Commented out to prevent button input before game start - Enabled in main.cpp sei(); // enable global interrupt in SERG
+  sei(); // enable global interrupt in SERG
 }

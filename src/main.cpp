@@ -18,6 +18,7 @@ bool gameStarted = false; // Only perform button interrupt actions if the game h
 int selectMode(); // Takes USART input to allow the user to configure the timer
 void promptMode(); // Prints out the mode options to serial to prompt the user to select one
 int getOverallTime(); // If running mode 1, ask the user to input the total time players will get
+bool validateTime(char* input); // Function to validate the tokenized items in getOverallTime
 
 int main() {
 
@@ -41,8 +42,9 @@ int main() {
 
 
   int mode = selectMode(); // Get user input to select the mode the timer will run in
-
-  sei(); // TODO - Move this so that button interrupt is only enabled after valid mode and time are provided
+  int seconds; // Keep track of the total number of seconds a player has
+  if(mode = 1)
+    seconds = getOverallTime();
 
   while(1) {
     /* 
@@ -68,6 +70,7 @@ int main() {
   }
 }
 
+// Prompt the user to select the game mode using the serial console
 int selectMode() {
 
   char modeStr[MAX_TEXT]; // To store the mode the user selected
@@ -93,29 +96,69 @@ int selectMode() {
   return modeInt; // Return the user's selected mode
 }
 
-void promptMode() { // Used to print out the mode options, function was made to reduce a few lines used
+// Used to print out the mode options, function was made to reduce a few lines used
+void promptMode() { 
   USART_send_string("Please select a mode:\n");
   USART_send_string(" - Mode 1: Limited overall time, unlimited turn time\n");
   USART_send_string(" - Mode 2: Unlimited overall time, limited turn time\n");
   USART_send_string("Enter the number for the desired mode: ");
 }
 
+// Prompt the user for the overall player time if playing mode 1
 int getOverallTime() {
-  
   char timeInput[MAX_TEXT]; // To store the time the user wants to give to each player
+  bool validInput = false; // Used to loop until input is valid
+  int totalSeconds; // To store the return value containing the converted total number of seconds 
+  char* element; // To keep track of the token currently being parsed
 
-  USART_send_string("Please input the overall time each user will get:\n");
-  USART_send_string("[hh:mm:ss]: ");
+  // Doing the input validation and the math in one location for the sake of efficiency
+  // The string has to be tokenized for both validation and conversion to seconds, so we tokenize once instead of twice
+  while(!validInput) {
+    USART_send_string("\n=====================================================\n");
+    USART_send_string("Please input the overall time each user will get.\n");
+    USART_send_string("Format as 'hh:mm:ss': ");
+    USART_get_string(timeInput); // Retrieve the time input string from the user via serial
 
+    totalSeconds = 0; // Make sure to clear totalSeconds from any previous iteration's values if validation failed
+    element = strtok(timeInput, ":"); // Input is delimited by colons, so use that for tokenizing
+
+    if(validateTime(element)) // If hh input is valid, add it to total number of seconds
+      totalSeconds += 3600 * atoi(element);
+    else
+      continue;
+    element = strtok(NULL, ":"); // Move to next token
+    if(validateTime(element)) // If mm input is valid, add it to total number of seconds
+      totalSeconds += 60 * atoi(element);
+    else
+      continue;
+    element = strtok(NULL, ":"); // Move to next token
+    if(validateTime(element)) // If ss input is valid, add it to total number of seconds
+      totalSeconds += atoi(element);
+    else
+      continue;
+    element = strtok(NULL, ":");
+    if(element != NULL) // If more than 3 input values were provided, fail validation
+      continue;
+    validInput = true; // If all validation steps passed, return the calculated seconds value
+  }
+  return totalSeconds; // If all validations passed, return the total number of seconds
+}
+
+// Function to validate the tokenized items in getOverallTime - Done multiple times, so made a function to reduce needed lines
+bool validateTime(char* input) {
+  if(strlen(input) != 2) // Return false if anythign other than 2 characters/numbers were provided
+    return false;
+  for(int i = 0; i < strlen(input); i++) // Make sure every number input is a digit
+    if(!isdigit(input[i]))
+      return false;
+  return true; // Input is valid if everything else passed
 }
 
 // Button input interrupt to swap player turns and timer countdowns
 ISR(INT0_vect) {
   change = true; // Something changed, so let the main game loop know
-  if(currPlayer) { // If player 1 ended their turn, it's now player 2's turn
+  if(currPlayer) // If player 1 ended their turn, it's now player 2's turn
     currPlayer = false;
-  }
-  else { // If player 2 ended their turn, it's now player 1's turn
+  else // If player 2 ended their turn, it's now player 1's turn
     currPlayer = true;
-  }
 }
