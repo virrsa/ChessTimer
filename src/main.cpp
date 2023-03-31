@@ -17,7 +17,8 @@ bool gameStarted = false; // Only perform button interrupt actions if the game h
 
 int selectMode(); // Takes USART input to allow the user to configure the timer
 void promptMode(); // Prints out the mode options to serial to prompt the user to select one
-int getOverallTime(); // If running mode 1, ask the user to input the total time players will get
+long int getOverallTime(); // If running mode 1, ask the user to input the total time players will get
+long int getTurnTime(); // If running mode 2, ask the user to input the maximum time per turn, up to 16s
 bool validateTime(char* input); // Function to validate the tokenized items in getOverallTime
 
 int main() {
@@ -40,10 +41,19 @@ int main() {
 	memset(text, 0, MAX_TEXT); // Make sure variables are clear (they should be, but just to be safe)
 
   int mode = selectMode(); // Get user input to select the mode the timer will run in
-  int seconds; // Keep track of the total number of seconds a player has
-  if(mode == 1)
+  long int seconds; // Keep track of the total number of seconds a player has
+  if(mode == 1) // If playing mode 1, get the overall turn time for the players
     seconds = getOverallTime();
+  else // If playing mode 2, get the maximum turn time for each player
+    seconds = getTurnTime();
   
+  // Just for debugging
+  memset(text, 0, MAX_TEXT);
+  USART_send_string("\n=====================================================\n");
+  sprintf(text, "Time is %d", seconds);
+  USART_send_string(text);
+  memset(text, 0, MAX_TEXT);
+
   gameStarted = true; // Mode and time have been specified, button INT0 interrupt can start working
 
   while(1) {
@@ -105,23 +115,22 @@ void promptMode() {
 }
 
 // Prompt the user for the overall player time if playing mode 1
-int getOverallTime() {
-  char timeInput[MAX_TEXT]; // To store the time the user wants to give to each player
+long int getOverallTime() {
   bool validInput = false; // Used to loop until input is valid
-  int totalSeconds; // To store the return value containing the converted total number of seconds 
+  long int totalSeconds; // To store the return value containing the converted total number of seconds 
   char* element; // To keep track of the token currently being parsed
 
   // Doing the input validation and the math in one location for the sake of efficiency
   // The string has to be tokenized for both validation and conversion to seconds, so we tokenize once instead of twice
   while(!validInput) {
-    memset(timeInput, 0, MAX_TEXT); // Make sure timeInput is empty before using it to grab input
+    memset(text, 0, MAX_TEXT); // Make sure input string is empty before using it to grab input
     USART_send_string("\n=====================================================\n");
     USART_send_string("Please input the overall time each user will get.\n");
     USART_send_string("Format as 'hh:mm:ss': ");
-    USART_get_string(timeInput); // Retrieve the time input string from the user via serial
+    USART_get_string(text); // Retrieve the time input string from the user via serial
 
     totalSeconds = 0; // Make sure to clear totalSeconds from any previous iteration's values if validation failed
-    element = strtok(timeInput, ":"); // Input is delimited by colons, so use that for tokenizing
+    element = strtok(text, ":"); // Input is delimited by colons, so use that for tokenizing
 
     if(validateTime(element)) // If hh input is valid, add it to total number of seconds
       totalSeconds += 3600 * atoi(element);
@@ -137,7 +146,7 @@ int getOverallTime() {
       totalSeconds += atoi(element);
     else
       continue;
-    element = strtok(NULL, ":");
+    element = strtok(NULL, ":"); // See if there is another token to check if more than 3 input values were provided
     if(element != NULL) // If more than 3 input values were provided, fail validation
       continue;
     validInput = true; // If all validation steps passed, return the calculated seconds value
@@ -149,10 +158,25 @@ int getOverallTime() {
 bool validateTime(char* input) {
   if(strlen(input) != 2) // Return false if anythign other than 2 characters/numbers were provided
     return false;
-  for(int i = 0; i < strlen(input); i++) // Make sure every number input is a digit
+  for(int i = 0; i < strlen(input); i++) // Make sure every number input is a digit, otherwise fail validation
     if(!isdigit(input[i]))
       return false;
   return true; // Input is valid if everything else passed
+}
+
+// Prompt the user for maximum turn time if playing mode 2
+long int getTurnTime() {
+  long int turnTime; // Stores the return value for the maximum allowed time per turn
+
+  while(!(turnTime >= 1 && turnTime <= 16)) { // Prompt the user for a max turn time until the input is between 1 and 16
+    memset(text, 0, MAX_TEXT); // Make sure input string is empty before using it to grab input
+    USART_send_string("\n=====================================================\n");
+    USART_send_string("Please enter the maximum allowed time per player turn.\n");
+    USART_send_string("Seconds (1 - 16): ");
+    USART_get_string(text); // Read the user's input from serial
+    turnTime = atoi(text); // Return value is 0 if string is not a number, so the while loop will rerun
+  }
+  return turnTime; // Return the user-provided turn time is input is valid
 }
 
 // Button input interrupt to swap player turns and timer countdowns
