@@ -14,6 +14,8 @@ byte digits[ARRAY_SIZE_DECIMAL] = {0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 0xBE, 0xE
 volatile bool change = false; // Keep track of whether there was a change, to perform actions in the while loop as needed
 volatile bool currPlayer = false; // True if P1's turn, false if P2's - Initial button press flips from P2 to start with P1
 
+int selectMode(); // Takes USART input to allow the user to configure the timer
+
 int main() {
 
   #ifdef __DEBUG__
@@ -27,13 +29,13 @@ int main() {
   peripherals_init();
   init_shift(DATA,CLOCK,LATCH);
 
-  // clear LCD display
-	LCD_command(1);
+	LCD_command(1); // Make sure the LCD is clear to start off
 
-  // reset variables
-	memset(text, 0, MAX_TEXT);
+  displayValue(0); // Make sure 7-seg is off to start
 
-  LCD_string("Test");
+	memset(text, 0, MAX_TEXT); // Make sure variables are clear (they should be, but just to be safe)
+
+  selectMode(); // Get user input to select the mode the timer will run in
 
   while(1) {
     /* 
@@ -57,6 +59,13 @@ int main() {
       change_led(currPlayer); // Make sure the LED is lit up for the correct player
     }
   }
+}
+
+int selectMode() {
+  // Print out a message to the LCD telling the user to select a mode
+  LCD_string("Select the mode:");
+  LCD_command(0xC0); // Move cursor to 2nd line for 2nd half of message
+  LCD_string("(Serial console)");
 }
 
 // Button input interrupt to swap player turns and timer countdowns
