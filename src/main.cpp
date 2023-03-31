@@ -76,8 +76,9 @@ int selectMode() {
   USART_get_string(modeStr); // Read the user input from serial
   int modeInt = atoi(modeStr); // Convert the input to an integer
 
-  while(modeInt != 1 && modeInt != 2) { // Make sure the selected mode is valid
-    USART_send_string("\nInvalid unput! Please enter either '1' or '2'.\n");
+  while(modeInt != 1 && modeInt != 2 || strlen(modeStr) > 1) { // Make sure the selected mode is valid
+    USART_send_string("\n=====================================================\n");
+    USART_send_string("Invalid unput! Please enter either '1' or '2'.\n");
     promptMode(); // Print the available mode information out to the user
     memset(modeStr, 0, MAX_TEXT); // Make sure array is clean before taking input
     USART_get_string(modeStr); // Read the user input from serial
