@@ -17,8 +17,8 @@ bool gameStarted = false; // Only perform button interrupt actions if the game h
 
 int selectMode(); // Takes USART input to allow the user to configure the timer
 void promptMode(); // Prints out the mode options to serial to prompt the user to select one
-long int getOverallTime(); // If running mode 1, ask the user to input the total time players will get
-long int getTurnTime(); // If running mode 2, ask the user to input the maximum time per turn, up to 16s
+long getOverallTime(); // If running mode 1, ask the user to input the total time players will get
+long getTurnTime(); // If running mode 2, ask the user to input the maximum time per turn, up to 16s
 bool validateTime(char* input); // Function to validate the tokenized items in getOverallTime
 
 int main() {
@@ -41,7 +41,7 @@ int main() {
 	memset(text, 0, MAX_TEXT); // Make sure variables are clear (they should be, but just to be safe)
 
   int mode = selectMode(); // Get user input to select the mode the timer will run in
-  long int seconds; // Keep track of the total number of seconds a player has
+  long seconds; // Keep track of the total number of seconds for timing, whether it be overall or per turn
   if(mode == 1) // If playing mode 1, get the overall turn time for the players
     seconds = getOverallTime();
   else // If playing mode 2, get the maximum turn time for each player
@@ -50,7 +50,7 @@ int main() {
   // Just for debugging
   memset(text, 0, MAX_TEXT);
   USART_send_string("\n=====================================================\n");
-  sprintf(text, "Time is %d", seconds);
+  sprintf(text, "Time is %ld", seconds);
   USART_send_string(text);
   memset(text, 0, MAX_TEXT);
 
@@ -115,9 +115,9 @@ void promptMode() {
 }
 
 // Prompt the user for the overall player time if playing mode 1
-long int getOverallTime() {
+long getOverallTime() {
   bool validInput = false; // Used to loop until input is valid
-  long int totalSeconds; // To store the return value containing the converted total number of seconds 
+  long totalSeconds; // To store the return value containing the converted total number of seconds 
   char* element; // To keep track of the token currently being parsed
 
   // Doing the input validation and the math in one location for the sake of efficiency
@@ -133,12 +133,12 @@ long int getOverallTime() {
     element = strtok(text, ":"); // Input is delimited by colons, so use that for tokenizing
 
     if(validateTime(element)) // If hh input is valid, add it to total number of seconds
-      totalSeconds += 3600 * atoi(element);
+      totalSeconds += 3600L * atoi(element);
     else
       continue;
     element = strtok(NULL, ":"); // Move to next token
     if(validateTime(element)) // If mm input is valid, add it to total number of seconds
-      totalSeconds += 60 * atoi(element);
+      totalSeconds += 60L * atoi(element);
     else
       continue;
     element = strtok(NULL, ":"); // Move to next token
@@ -165,8 +165,8 @@ bool validateTime(char* input) {
 }
 
 // Prompt the user for maximum turn time if playing mode 2
-long int getTurnTime() {
-  long int turnTime; // Stores the return value for the maximum allowed time per turn
+long getTurnTime() {
+  int turnTime; // Stores the return value for the maximum allowed time per turn
 
   while(!(turnTime >= 1 && turnTime <= 16)) { // Prompt the user for a max turn time until the input is between 1 and 16
     memset(text, 0, MAX_TEXT); // Make sure input string is empty before using it to grab input
