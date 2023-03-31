@@ -17,6 +17,7 @@ bool gameStarted = false; // Only perform button interrupt actions if the game h
 
 int selectMode(); // Takes USART input to allow the user to configure the timer
 void promptMode(); // Prints out the mode options to serial to prompt the user to select one
+int getOverallTime(); // If running mode 1, ask the user to input the total time players will get
 
 int main() {
 
@@ -37,7 +38,11 @@ int main() {
 
 	memset(text, 0, MAX_TEXT); // Make sure variables are clear (they should be, but just to be safe)
 
+
+
   int mode = selectMode(); // Get user input to select the mode the timer will run in
+
+  sei(); // TODO - Move this so that button interrupt is only enabled after valid mode and time are provided
 
   while(1) {
     /* 
@@ -64,7 +69,7 @@ int main() {
 }
 
 int selectMode() {
-  
+
   char modeStr[MAX_TEXT]; // To store the mode the user selected
   
   // Print out a message to the LCD telling the user to select a mode
@@ -86,8 +91,6 @@ int selectMode() {
   }
 
   return modeInt; // Return the user's selected mode
-
-  sei(); // Only take button input once the mode has been selected, so that the game can start
 }
 
 void promptMode() { // Used to print out the mode options, function was made to reduce a few lines used
@@ -95,6 +98,15 @@ void promptMode() { // Used to print out the mode options, function was made to 
   USART_send_string(" - Mode 1: Limited overall time, unlimited turn time\n");
   USART_send_string(" - Mode 2: Unlimited overall time, limited turn time\n");
   USART_send_string("Enter the number for the desired mode: ");
+}
+
+int getOverallTime() {
+  
+  char timeInput[MAX_TEXT]; // To store the time the user wants to give to each player
+
+  USART_send_string("Please input the overall time each user will get:\n");
+  USART_send_string("[hh:mm:ss]: ");
+
 }
 
 // Button input interrupt to swap player turns and timer countdowns
