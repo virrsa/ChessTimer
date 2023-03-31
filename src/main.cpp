@@ -39,12 +39,12 @@ int main() {
 
 	memset(text, 0, MAX_TEXT); // Make sure variables are clear (they should be, but just to be safe)
 
-
-
   int mode = selectMode(); // Get user input to select the mode the timer will run in
   int seconds; // Keep track of the total number of seconds a player has
-  if(mode = 1)
+  if(mode == 1)
     seconds = getOverallTime();
+  
+  gameStarted = true; // Mode and time have been specified, button INT0 interrupt can start working
 
   while(1) {
     /* 
@@ -114,6 +114,7 @@ int getOverallTime() {
   // Doing the input validation and the math in one location for the sake of efficiency
   // The string has to be tokenized for both validation and conversion to seconds, so we tokenize once instead of twice
   while(!validInput) {
+    memset(timeInput, 0, MAX_TEXT); // Make sure timeInput is empty before using it to grab input
     USART_send_string("\n=====================================================\n");
     USART_send_string("Please input the overall time each user will get.\n");
     USART_send_string("Format as 'hh:mm:ss': ");
@@ -156,9 +157,11 @@ bool validateTime(char* input) {
 
 // Button input interrupt to swap player turns and timer countdowns
 ISR(INT0_vect) {
-  change = true; // Something changed, so let the main game loop know
-  if(currPlayer) // If player 1 ended their turn, it's now player 2's turn
-    currPlayer = false;
-  else // If player 2 ended their turn, it's now player 1's turn
-    currPlayer = true;
+  if(gameStarted) { // Prevent interrupts from doing anything until a mode and time have been specified
+    change = true; // Something changed, so let the main game loop know
+    if(currPlayer) // If player 1 ended their turn, it's now player 2's turn
+      currPlayer = false;
+    else // If player 2 ended their turn, it's now player 1's turn
+      currPlayer = true;
+  }
 }
