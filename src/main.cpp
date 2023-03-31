@@ -37,7 +37,7 @@ int main() {
 
 	memset(text, 0, MAX_TEXT); // Make sure variables are clear (they should be, but just to be safe)
 
-  selectMode(); // Get user input to select the mode the timer will run in
+  int mode = selectMode(); // Get user input to select the mode the timer will run in
 
   while(1) {
     /* 
@@ -84,6 +84,8 @@ int selectMode() {
     USART_get_string(modeStr); // Read the user input from serial
     modeInt = atoi(modeStr); // Convert the input to an integer
   }
+
+  return modeInt; // Return the user's selected mode
 
   sei(); // Only take button input once the mode has been selected, so that the game can start
 }
