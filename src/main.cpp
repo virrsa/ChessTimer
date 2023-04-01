@@ -19,6 +19,8 @@ void promptMode(); // Prints out the mode options to serial to prompt the user t
 long getOverallTime(); // If running mode 1, ask the user to input the total time players will get
 long getTurnTime(); // If running mode 2, ask the user to input the maximum time per turn, up to 16s
 bool validateTime(char* input); // Function to validate the tokenized items in getOverallTime
+void mode_1(long seconds); // Activates mode 1 chess timer (unlimited turn time with limited time overall)
+void mode_2(long seconds); // Activates mode 2 chess timer (limited turn time with unlimited time overall)
 
 int main() {
 
@@ -60,22 +62,8 @@ int main() {
 
   // Loop for playing mode 1
   if (mode == 1) {
-    // Count down time left in the game
-    for (int i = 0; i <= seconds; i++){
-      if(change) { // If something is different for this loop, perform actions as needed
-        change = false; // Reset the flag because the change is being addresses
-        change_led(currPlayer); // Make sure the LED is lit up for the correct player
-      }
-
-      TCNT1 = 3035; // Initialize timer value for 1000ms
-      while((TIFR1 & (1 << OCF1A)) == 0); // Check if overflow flag is set
-      TIFR1 |= (1 << OCF1A) ; // Reset timer1 overflow flag
-    }
-
-    // Game is over, turn off both LEDs
-    PORTC &= ~(1 << GREEN_LED);
-    PORTC &= ~(1 << BLUE_LED);
-
+    // Activate mode 1 chess timer
+    mode_1(seconds);
   }
   // Loop for playing mode 2
   else if (mode == 2) {
@@ -211,6 +199,28 @@ long getTurnTime() {
     turnTime = atoi(text); // Return value is 0 if string is not a number, so the while loop will rerun
   }
   return turnTime; // Return the user-provided turn time is input is valid
+}
+
+void mode_1(long seconds) {
+  // Count down time left in the game
+  for (int i = 0; i <= seconds; i++){
+    if(change) { // If something is different for this loop, perform actions as needed
+      change = false; // Reset the flag because the change is being addresses
+      change_led(currPlayer); // Make sure the LED is lit up for the correct player
+    }
+
+    TCNT1 = 3035; // Initialize timer value for 1000ms
+    while((TIFR1 & (1 << OCF1A)) == 0); // Check if overflow flag is set
+    TIFR1 |= (1 << OCF1A) ; // Reset timer1 overflow flag
+  }
+
+  // Game is over, turn off both LEDs
+  PORTC &= ~(1 << GREEN_LED);
+  PORTC &= ~(1 << BLUE_LED);
+}
+
+void mode_2(long seconds) {
+  
 }
 
 // Button input interrupt to swap player turns and timer countdowns
