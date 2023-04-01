@@ -12,7 +12,7 @@ char text[MAX_TEXT]; // for USART input
 byte digits[ARRAY_SIZE_DECIMAL] = {0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 0xBE, 0xE0, 0xFE, 0xF6, // 0 - 9
                                    0xEE, 0x3E, 0x9C, 0x7A, 0x9E, 0x8E}; // A - F
 volatile bool change = false; // Keep track of whether there was a change, to perform actions in the while loop as needed
-volatile bool currPlayer = false; // True if P1's turn, false if P2's - Initial button press flips from P2 to start with P1
+volatile bool currPlayer = true; // True if P1's turn, false if P2's
 
 int selectMode(); // Takes USART input to allow the user to configure the timer
 void promptMode(); // Prints out the mode options to serial to prompt the user to select one
@@ -21,6 +21,7 @@ long getTurnTime(); // If running mode 2, ask the user to input the maximum time
 bool validateTime(char* input); // Function to validate the tokenized items in getOverallTime
 void mode_1(long seconds); // Activates mode 1 chess timer (unlimited turn time with limited time overall)
 void mode_2(long seconds); // Activates mode 2 chess timer (limited turn time with unlimited time overall)
+void displayWinner(bool player); // When the game ends, stop the loop and display the winner to the LCD
 
 int main() {
 
@@ -172,21 +173,44 @@ long getTurnTime() {
 }
 
 void mode_1(long seconds) {
-  // Count down time left in the game
-  for (int i = 0; i <= seconds; i++){
+
+  // For the sake of using less variables, p1 time is tracked using "seconds"
+  long p2_seconds = seconds; // P2 has same starting time as P1, and their own remaining seconds counter
+
+  while(1) {
     if(change) { // If something is different for this loop, perform actions as needed
-      change = false; // Reset the flag because the change is being addresses
+      change = false; // Reset the flag because the change is being addressed
       change_led(currPlayer); // Make sure the LED is lit up for the correct player
+      continue; // Start next loop so that the player has their timer start from fresh
     }
 
+    // TODO - Remove, this is just for debugging
+    // Why do the LEDs act weird when this code is here?
+    if(currPlayer)
+      sprintf(text, "%li", seconds);
+    else
+      sprintf(text, "%li", p2_seconds);
+    LCD_command(0x01);
+    LCD_string(text);
+    memset(text, 0, MAX_TEXT);
+
     TCNT1 = 3035; // Initialize timer value for 1000ms
+    // TODO - Maybe do a change check and break within this while loop as well?
+    // Might make for faster responses, things seem a bit delayed
     while((TIFR1 & (1 << OCF1A)) == 0); // Check if overflow flag is set
     TIFR1 |= (1 << OCF1A) ; // Reset timer1 overflow flag
-  }
 
-  // Game is over, turn off both LEDs
-  PORTC &= ~(1 << GREEN_LED);
-  PORTC &= ~(1 << BLUE_LED);
+    if(currPlayer) // If player 1 had 1s elapsed, decrease remaining time
+      seconds --;
+    else // If P2 had 1s elapsed, decrease remaining time
+      p2_seconds--;
+
+    if(seconds == 0 || p2_seconds == 0){ // If one of the players ran out of time, game is over
+      cli(); // Disable interrupts to prevent button of messing with end of game sequence
+      displayWinner(!currPlayer); // Winner is opposite of currPlayer, as currPlayer ran out of time
+      break; // Game is done
+    }
+  }
 }
 
 void mode_2(long seconds) {
@@ -206,22 +230,33 @@ void mode_2(long seconds) {
       change = false; // Reset the flag because the change is being addresses
       change_led(currPlayer); // Make sure the LED is lit up for the correct player
     }
-    else { // Trigger buzzer only when player runs out of time
-      toggle_buzzer(true); // Turn on buzzer
-      TCNT1 = 3035; // Initialize timer1 value for buzzer to buzz for one second
-      while((TIFR1 & (1 << OCF1A)) == 0); // Check if overflow flag is set
-      TIFR1 |= (1 << OCF1A); // Reset timer1 overflow flag
-      toggle_buzzer(false); // Turn off buzzer
-
-      if (currPlayer) { // If player 1 ended their turn, it's now player 2's turn
-        currPlayer = false;
-      }
-      else { // If player 2 ended their turn, it's now player 1's turn
-        currPlayer = true;
-      }
-      change_led(currPlayer); // Make sure the LED is lit up for the correct player
+    else { // If the player runs out of time, they lose
+      displayWinner(!currPlayer);
+      break; // Game is done
     }
   }
+}
+
+void displayWinner(bool player) {
+
+  // Game is done, run the buzzer for 1s 
+  toggle_buzzer(true); // Turn on buzzer
+  TCNT1 = 3035; // Initialize timer1 value for buzzer to buzz for one second
+  while((TIFR1 & (1 << OCF1A)) == 0); // Check if overflow flag is set
+  TIFR1 |= (1 << OCF1A); // Reset timer1 overflow flag
+  toggle_buzzer(false); // Turn off buzzer
+  
+  // Game is over, turn off both LEDs
+  PORTB &= ~(1 << GREEN_LED);
+  PORTB &= ~(1 << BLUE_LED);
+  PORTD &= ~(1 << BUZZER); // Make sure the buzzer is off
+  displayValue(0); // Make sure 7-seg is off
+
+  
+  
+  // Winner LCD stuff here
+  LCD_command(1); // Clear LCD
+  LCD_string("Game over");
 }
 
 // Button input interrupt to swap player turns and timer countdowns
