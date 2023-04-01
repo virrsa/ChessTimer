@@ -67,38 +67,8 @@ int main() {
   }
   // Loop for playing mode 2
   else if (mode == 2) {
-    while(1) {
-      // Count down the time left for the player
-      for (int i = seconds-1; i >= 0; i--) {
-        if (change == true) { // If button press is detected, break out of the loop
-          break;
-        }
-        displayValue(digits[i]); // Display time left on 7-segment display
-        TCNT1 = 3035; // Initialize timer value for 1000ms
-        while((TIFR1 & (1 << OCF1A)) == 0); // Check if overflow flag is set
-        TIFR1 |= (1 << OCF1A) ; // Reset timer1 overflow flag
-      }
-
-      if(change) { // If something is different for this loop, perform actions as needed
-        change = false; // Reset the flag because the change is being addresses
-        change_led(currPlayer); // Make sure the LED is lit up for the correct player
-      }
-      else { // Trigger buzzer only when player runs out of time
-        toggle_buzzer(true); // Turn on buzzer
-        TCNT1 = 3035; // Initialize timer1 value for buzzer to buzz for one second
-        while((TIFR1 & (1 << OCF1A)) == 0); // Check if overflow flag is set
-        TIFR1 |= (1 << OCF1A); // Reset timer1 overflow flag
-        toggle_buzzer(false); // Turn off buzzer
-
-        if (currPlayer) { // If player 1 ended their turn, it's now player 2's turn
-          currPlayer = false;
-        }
-        else { // If player 2 ended their turn, it's now player 1's turn
-          currPlayer = true;
-        }
-        change_led(currPlayer); // Make sure the LED is lit up for the correct player
-      }
-    }
+    // Activate mode 2 chess timer
+    mode_2(seconds);
   }
 }
 
@@ -220,7 +190,38 @@ void mode_1(long seconds) {
 }
 
 void mode_2(long seconds) {
-  
+  while(1) {
+    // Count down the time left for the player
+    for (int i = seconds-1; i >= 0; i--) {
+      if (change == true) { // If button press is detected, break out of the loop
+        break;
+      }
+      displayValue(digits[i]); // Display time left on 7-segment display
+      TCNT1 = 3035; // Initialize timer value for 1000ms
+      while((TIFR1 & (1 << OCF1A)) == 0); // Check if overflow flag is set
+      TIFR1 |= (1 << OCF1A) ; // Reset timer1 overflow flag
+    }
+
+    if(change) { // If something is different for this loop, perform actions as needed
+      change = false; // Reset the flag because the change is being addresses
+      change_led(currPlayer); // Make sure the LED is lit up for the correct player
+    }
+    else { // Trigger buzzer only when player runs out of time
+      toggle_buzzer(true); // Turn on buzzer
+      TCNT1 = 3035; // Initialize timer1 value for buzzer to buzz for one second
+      while((TIFR1 & (1 << OCF1A)) == 0); // Check if overflow flag is set
+      TIFR1 |= (1 << OCF1A); // Reset timer1 overflow flag
+      toggle_buzzer(false); // Turn off buzzer
+
+      if (currPlayer) { // If player 1 ended their turn, it's now player 2's turn
+        currPlayer = false;
+      }
+      else { // If player 2 ended their turn, it's now player 1's turn
+        currPlayer = true;
+      }
+      change_led(currPlayer); // Make sure the LED is lit up for the correct player
+    }
+  }
 }
 
 // Button input interrupt to swap player turns and timer countdowns
