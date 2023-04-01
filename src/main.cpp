@@ -60,7 +60,22 @@ int main() {
 
   // Loop for playing mode 1
   if (mode == 1) {
-    // TODO: mode 1 code
+    // Count down time left in the game
+    for (int i = 0; i <= seconds; i++){
+      if(change) { // If something is different for this loop, perform actions as needed
+        change = false; // Reset the flag because the change is being addresses
+        change_led(currPlayer); // Make sure the LED is lit up for the correct player
+      }
+
+      TCNT1 = 3035; // Initialize timer value for 1000ms
+      while((TIFR1 & (1 << OCF1A)) == 0); // Check if overflow flag is set
+      TIFR1 |= (1 << OCF1A) ; // Reset timer1 overflow flag
+    }
+
+    // Game is over, turn off both LEDs
+    PORTC &= ~(1 << GREEN_LED);
+    PORTC &= ~(1 << BLUE_LED);
+
   }
   // Loop for playing mode 2
   else if (mode == 2) {
