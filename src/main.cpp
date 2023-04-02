@@ -18,10 +18,13 @@ volatile bool currPlayer = true; // True if P1's turn, false if P2's
 int p1_turns = 1; // Player 1 starts the game at turn 1, turns incremented on switch
 int p2_turns = 0; // Player 2 starts at 0 turns, which increments on switch
 
-// Used for converting seconds to hh:mm:ss
-int hrs = 0;
-int mins = 0;
-int secs = 0;
+// Used for converting seconds to hh:mm:ss and updating LCD
+int p1_hrs = 0;
+int p1_mins = 0;
+int p1_secs = 0;
+int p2_hrs = 0;
+int p2_mins = 0;
+int p2_secs = 0;
 
 int selectMode(); // Takes USART input to allow the user to configure the timer
 void promptMode(); // Prints out the mode options to serial to prompt the user to select one
@@ -186,6 +189,14 @@ void mode_1(long seconds) {
   // For the sake of using less variables, p1 time is tracked using "seconds"
   long p2_seconds = seconds; // P2 has same starting time as P1, and their own remaining seconds counter
 
+  // Calculate the values for the initial display
+  p1_hrs = seconds / 3600;
+  p1_mins = (seconds % 3600) / 60;
+  p1_secs = (seconds % 3600) % 60;
+  p2_hrs = p2_seconds / 3600;
+  p2_mins = (p2_seconds % 3600) / 60;
+  p2_secs = (p2_seconds % 3600) % 60;
+
   while(1) {
     if(change) { // If something is different for this loop, perform actions as needed
       change = false; // Reset the flag because the change is being addressed
@@ -199,21 +210,26 @@ void mode_1(long seconds) {
     LCD_command(0x01); // Clear LCD display
     if(currPlayer) {
       // Convert seconds to hh:mm:ss
-      hrs = seconds / 3600;
-      mins = (seconds % 3600) / 60;
-      secs = (seconds % 3600) % 60;
+      p1_hrs = seconds / 3600;
+      p1_mins = (seconds % 3600) / 60;
+      p1_secs = (seconds % 3600) % 60;
 
       LCD_string("Player 1:");
     }
     else {
       // Convert seconds to hh:mm:ss
-      hrs = p2_seconds / 3600;
-      mins = (p2_seconds % 3600) / 60;
-      secs = (p2_seconds % 3600) % 60;
+      p2_hrs = p2_seconds / 3600;
+      p2_mins = (p2_seconds % 3600) / 60;
+      p2_secs = (p2_seconds % 3600) % 60;
 
       LCD_string("Player 2:");
     }
-    sprintf(text, "%i:%i:%i", hrs, mins, secs); // Format time for LCD
+    
+    sprintf(text, "P1: %i:%i:%i", p1_hrs, p1_mins, p1_secs); // Format time for LCD
+    LCD_command(0x01); // Clear screen and start cursor at front of first line
+    LCD_string(text); // Display time remaining for player 1
+    memset(text, 0, MAX_TEXT); // Clear string to setup for player 2
+    sprintf(text, "P2: %i:%i:%i", p2_hrs, p2_mins, p2_secs); // Format time for LCD
     LCD_command(0xC0); // Move to second line
     LCD_string(text); // Display time remaining for player
     memset(text, 0, MAX_TEXT); // Clear string 
