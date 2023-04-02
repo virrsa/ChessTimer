@@ -199,17 +199,17 @@ void mode_1(long seconds) {
     LCD_command(0x01); // Clear LCD display
     if(currPlayer) {
       // Convert seconds to hh:mm:ss
-      hrs = seconds/3600;
-      mins = (seconds - (3600 * hrs)) / 60;
-      secs = seconds - (3600 * hrs) - (mins * 60);
+      hrs = seconds / 3600;
+      mins = (seconds % 3600) / 60;
+      secs = (seconds % 3600) % 60;
 
       LCD_string("Player 1:");
     }
     else {
       // Convert seconds to hh:mm:ss
-      hrs = p2_seconds/3600;
-      mins = (p2_seconds - (3600 * hrs)) / 60;
-      secs = p2_seconds - (3600 * hrs) - (mins * 60);
+      hrs = p2_seconds / 3600;
+      mins = (p2_seconds % 3600) / 60;
+      secs = (p2_seconds % 3600) % 60;
 
       LCD_string("Player 2:");
     }
