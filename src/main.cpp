@@ -14,6 +14,15 @@ byte digits[ARRAY_SIZE_DECIMAL] = {0xFC, 0x60, 0xDA, 0xF2, 0x66, 0xB6, 0xBE, 0xE
 volatile bool change = false; // Keep track of whether there was a change, to perform actions in the while loop as needed
 volatile bool currPlayer = true; // True if P1's turn, false if P2's
 
+// Keep track of the amount of turns the players have had
+int p1_turns = 0;
+int p2_turns = 0;
+
+// Used for converting seconds to hh:mm:ss
+int hrs = 0;
+int mins = 0;
+int secs = 0;
+
 int selectMode(); // Takes USART input to allow the user to configure the timer
 void promptMode(); // Prints out the mode options to serial to prompt the user to select one
 long getOverallTime(); // If running mode 1, ask the user to input the total time players will get
@@ -184,15 +193,30 @@ void mode_1(long seconds) {
       continue; // Start next loop so that the player has their timer start from fresh
     }
 
-    // TODO - Remove, this is just for debugging
-    // Why do the LEDs act weird when this code is here?
-    if(currPlayer)
-      sprintf(text, "%li", seconds);
-    else
-      sprintf(text, "%li", p2_seconds);
-    LCD_command(0x01);
-    LCD_string(text);
-    memset(text, 0, MAX_TEXT);
+    // Display remaining time for players
+
+    LCD_command(0x80);  // move to first line
+    LCD_command(0x01); // Clear LCD display
+    if(currPlayer) {
+      // Convert seconds to hh:mm:ss
+      hrs = seconds/3600;
+      mins = (seconds - (3600 * hrs)) / 60;
+      secs = seconds - (3600 * hrs) - (mins * 60);
+
+      LCD_string("Player 1:");
+    }
+    else {
+      // Convert seconds to hh:mm:ss
+      hrs = p2_seconds/3600;
+      mins = (p2_seconds - (3600 * hrs)) / 60;
+      secs = p2_seconds - (3600 * hrs) - (mins * 60);
+
+      LCD_string("Player 2:");
+    }
+    sprintf(text, "%i:%i:%i", hrs, mins, secs); // Format time for LCD
+    LCD_command(0xC0); // Move to second line
+    LCD_string(text); // Display time remaining for player
+    memset(text, 0, MAX_TEXT); // Clear string 
 
     TCNT1 = 3035; // Initialize timer value for 1000ms
     // TODO - Maybe do a change check and break within this while loop as well?
@@ -215,6 +239,18 @@ void mode_1(long seconds) {
 
 void mode_2(long seconds) {
   while(1) {
+
+    // Display player turn information
+    LCD_command(0x80);  // move to first line
+    LCD_command(0x01); // Clear LCD display
+    sprintf(text, "P1: %li Turns", p1_turns);
+    LCD_string(text);
+    memset(text, 0, MAX_TEXT); // Clear string
+    LCD_command(0xC0); // Move to second line
+    sprintf(text, "P2: %li Turns", p2_turns);
+    LCD_string(text);
+    memset(text, 0, MAX_TEXT); // Clear string
+
     // Count down the time left for the player
     for (int i = seconds-1; i >= 0; i--) {
       if (change == true) { // If button press is detected, break out of the loop
@@ -228,6 +264,8 @@ void mode_2(long seconds) {
 
     if(change) { // If something is different for this loop, perform actions as needed
       change = false; // Reset the flag because the change is being addresses
+      if (currPlayer) { p1_turns++; } // If currently player 1, increase turns
+      else { p2_turns++; } // If currently player 2, increase turns
       change_led(currPlayer); // Make sure the LED is lit up for the correct player
     }
     else { // If the player runs out of time, they lose
@@ -251,12 +289,14 @@ void displayWinner(bool player) {
   PORTB &= ~(1 << BLUE_LED);
   PORTD &= ~(1 << BUZZER); // Make sure the buzzer is off
   displayValue(0); // Make sure 7-seg is off
-
   
-  
-  // Winner LCD stuff here
+  // Display winner on LCD
+  LCD_command(0x80);  // move to first line
   LCD_command(1); // Clear LCD
   LCD_string("Game over");
+  LCD_command(0xC0); // Move to second line
+  if (currPlayer) { LCD_string("Player 1 Wins"); }
+  else { LCD_string("Player 2 wins"); }
 }
 
 // Button input interrupt to swap player turns and timer countdowns
@@ -267,19 +307,3 @@ ISR(INT0_vect) {
   else // If player 2 ended their turn, it's now player 1's turn
     currPlayer = true;
 }
-
-/* 
-  //For testing the different components without interrupts
-
-  change_led(true);
-  _delay_ms(500);
-  change_led(false);
-  _delay_ms(500);
-  for(int i = 0; i < 16; i++) {
-    displayValue(digits[i]);
-    _delay_ms(500);
-  }
-  toggle_buzzer(true);
-  _delay_ms(100);
-  toggle_buzzer(false);
-*/
