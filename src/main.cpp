@@ -15,8 +15,8 @@ volatile bool change = false; // Keep track of whether there was a change, to pe
 volatile bool currPlayer = true; // True if P1's turn, false if P2's
 
 // Keep track of the amount of turns the players have had
-int p1_turns = 0;
-int p2_turns = 0;
+int p1_turns = 1; // Player 1 starts the game at turn 1, turns incremented on switch
+int p2_turns = 0; // Player 2 starts at 0 turns, which increments on switch
 
 // Used for converting seconds to hh:mm:ss
 int hrs = 0;
@@ -238,16 +238,17 @@ void mode_1(long seconds) {
 }
 
 void mode_2(long seconds) {
+
   while(1) {
 
     // Display player turn information
     LCD_command(0x80);  // move to first line
     LCD_command(0x01); // Clear LCD display
-    sprintf(text, "P1: %li Turns", p1_turns);
+    sprintf(text, "P1: %i Turns", p1_turns);
     LCD_string(text);
     memset(text, 0, MAX_TEXT); // Clear string
     LCD_command(0xC0); // Move to second line
-    sprintf(text, "P2: %li Turns", p2_turns);
+    sprintf(text, "P2: %i Turns", p2_turns);
     LCD_string(text);
     memset(text, 0, MAX_TEXT); // Clear string
 
@@ -295,7 +296,7 @@ void displayWinner(bool player) {
   LCD_command(1); // Clear LCD
   LCD_string("Game over");
   LCD_command(0xC0); // Move to second line
-  if (currPlayer) { LCD_string("Player 1 Wins"); }
+  if (player) { LCD_string("Player 1 Wins"); }
   else { LCD_string("Player 2 wins"); }
 }
 
